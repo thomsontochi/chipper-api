@@ -29,7 +29,7 @@ This is the repository of the REST API of _Chipper_, a fictional microblogging a
 
 As part of our interview process, we'd like to invite you to tackle a technical challenge and share your solution with us. Are you ready? Let's get started!
 
-# Tasks
+# Preparation
 
 Please invest some time in acquainting yourself with the codebase, including Models, Controllers, and the database structure.
 
@@ -40,6 +40,8 @@ Upload this code to a PRIVATE repository in GitHub. Invite the user [nicodevs](h
 ![Image](https://i.imgur.com/wxemxjk.png)
 
 Once you are ready, proceed to address the following tasks one by one.
+
+# Tasks
 
 ## 1. Add the ability for users to favorite users
 
