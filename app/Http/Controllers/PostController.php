@@ -8,6 +8,8 @@ use App\Http\Requests\UpdatePostRequest;
 use App\Http\Resources\PostResource;
 use App\Jobs\NotifyFollowersOfNewPost;
 use App\Models\Post;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * @group Posts
@@ -27,11 +29,25 @@ class PostController extends Controller
         $user = $request->user();
 
         // Create a new post
-        $post = Post::create([
+        $payload = [
             'title' => $request->input('title'),
             'body' => $request->input('body'),
             'user_id' => $user->id,
-        ]);
+        ];
+
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('post-images', 'public');
+            $payload['image_path'] = $path;
+
+            Log::info('Post image stored', [
+                'user_id' => $user->id,
+                'path' => $path,
+                'mime' => $request->file('image')->getMimeType(),
+                'size' => $request->file('image')->getSize(),
+            ]);
+        }
+
+        $post = Post::create($payload);
 
         NotifyFollowersOfNewPost::dispatch($post->fresh('user'));
 

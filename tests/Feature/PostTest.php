@@ -7,9 +7,11 @@ use App\Models\Post;
 use App\Models\User;
 use App\Notifications\FavoritedAuthorPublished;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class PostTest extends TestCase
@@ -52,6 +54,53 @@ class PostTest extends TestCase
             'title' => 'Test Post',
             'body' => 'This is a test post.',
         ]);
+    }
+
+    public function test_a_user_can_create_a_post_with_an_image()
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create();
+        $file = UploadedFile::fake()->image('cover.png', 600, 600);
+
+        $response = $this->actingAs($user)->post(route('posts.store'), [
+            'title' => 'Photo Post',
+            'body' => 'Look at this image.',
+            'image' => $file,
+        ], [
+            'Accept' => 'application/json',
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.image_url', fn ($url) => is_string($url) && str_contains($url, '/storage/'));
+
+        $postId = Arr::get($response->json(), 'data.id');
+        $post = Post::findOrFail($postId);
+
+        Storage::disk('public')->assertExists($post->image_path);
+        $this->assertDatabaseHas('posts', [
+            'id' => $post->id,
+            'image_path' => $post->image_path,
+        ]);
+    }
+
+    public function test_invalid_image_is_rejected()
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create();
+        $file = UploadedFile::fake()->create('malware.exe', 10, 'application/octet-stream');
+
+        $response = $this->actingAs($user)->post(route('posts.store'), [
+            'title' => 'Invalid Image',
+            'body' => 'Should fail.',
+            'image' => $file,
+        ], [
+            'Accept' => 'application/json',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['image']);
     }
 
     public function test_a_user_can_update_a_post()
