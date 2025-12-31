@@ -2,9 +2,14 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Support\Arr;
+use App\Jobs\NotifyFollowersOfNewPost;
+use App\Models\Post;
 use App\Models\User;
+use App\Notifications\FavoritedAuthorPublished;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class PostTest extends TestCase
@@ -124,5 +129,49 @@ class PostTest extends TestCase
         $this->assertDatabaseMissing('posts', [
             'id' => $id,
         ]);
+    }
+
+    public function test_job_is_dispatched_to_notify_followers_when_post_is_created()
+    {
+        Queue::fake();
+
+        $author = User::factory()->create();
+
+        $response = $this->actingAs($author)->postJson(route('posts.store'), [
+            'title' => 'Queued Title',
+            'body' => 'Queued body.',
+        ]);
+
+        $response->assertCreated();
+
+        $postId = Arr::get($response->json(), 'data.id');
+
+        Queue::assertPushed(NotifyFollowersOfNewPost::class, function (NotifyFollowersOfNewPost $job) use ($postId) {
+            return $job->post->id === $postId;
+        });
+    }
+
+    public function test_followers_receive_notification_when_job_runs()
+    {
+        Notification::fake();
+
+        $author = User::factory()->create();
+        $followers = User::factory()->count(2)->create();
+        $stranger = User::factory()->create();
+
+        $followers->each(fn (User $follower) => $follower->favorite($author));
+
+        $post = Post::factory()->for($author)->create([
+            'title' => 'Followers update',
+            'body' => 'This is some content',
+        ]);
+
+        (new NotifyFollowersOfNewPost($post->fresh('user')))->handle();
+
+        $followers->each(function (User $follower) {
+            Notification::assertSentTo($follower, FavoritedAuthorPublished::class);
+        });
+
+        Notification::assertNotSentTo($stranger, FavoritedAuthorPublished::class);
     }
 }
