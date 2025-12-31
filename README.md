@@ -184,7 +184,7 @@ Once an image is attached, the endpoint should save it appropriately. The URL of
 
 > Please update the following line in this `README.md` file to include your estimate of the time required for completion.
 
-Estimated Time Required: [Your Estimate Here]
+Estimated Time Required: 1 hour or less
 
 > After updating the estimate and right before you start coding, commit your changes using the following command:
 `git add README.md && git commit -m "Extra Task estimated" && git push`
