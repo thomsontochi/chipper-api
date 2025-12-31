@@ -3,6 +3,8 @@
 namespace Database\Factories;
 
 use App\Models\Favorite;
+use App\Models\Post;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class FavoriteFactory extends Factory
@@ -22,8 +24,19 @@ class FavoriteFactory extends Factory
     public function definition(): array
     {
         return [
-            'post_id' => \App\Models\Post::factory(),
-            'user_id' => \App\Models\User::factory(),
+            'favorable_id' => Post::factory(),
+            'favorable_type' => Post::class,
+            'user_id' => User::factory(),
         ];
+    }
+
+    public function user(): self
+    {
+        return $this->state(function () {
+            return [
+                'favorable_id' => User::factory(),
+                'favorable_type' => User::class,
+            ];
+        });
     }
 }
