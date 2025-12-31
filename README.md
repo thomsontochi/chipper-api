@@ -162,7 +162,7 @@ Ensure that the corresponsing tests are provided for this feature.
 
 > Please update the following line in this `README.md` file to include your estimate of the time required for completion.
 
-Estimated Time Required: [Your Estimate Here]
+Estimated Time Required: 1 hour
 
 > After updating the estimate and right before you start coding, commit your changes using the following command:
 `git add README.md && git commit -m "Task 4 estimated" && git push`
