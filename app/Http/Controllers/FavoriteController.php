@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\CreateFavoriteRequest;
-use App\Http\Resources\FavoriteResource;
 use App\Models\Post;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -19,9 +18,56 @@ class FavoriteController extends Controller
 {
     public function index(Request $request)
     {
-        $favorites = $request->user()->favorites()->with('favorable')->get();
+        $favorites = $request->user()
+            ->favorites()
+            ->with([
+                'favorable' => function ($morphTo) {
+                    $morphTo->morphWith([
+                        Post::class => ['user:id,name'],
+                    ]);
+                },
+            ])
+            ->get();
 
-        return FavoriteResource::collection($favorites);
+        $posts = $favorites
+            ->where('favorable_type', Post::class)
+            ->filter(fn ($favorite) => $favorite->favorable)
+            ->map(function ($favorite) {
+                /** @var \App\Models\Post $post */
+                $post = $favorite->favorable;
+
+                return [
+                    'id' => $post->id,
+                    'title' => $post->title,
+                    'body' => $post->body,
+                    'user' => [
+                        'id' => $post->user->id,
+                        'name' => $post->user->name,
+                    ],
+                ];
+            })
+            ->values();
+
+        $users = $favorites
+            ->where('favorable_type', User::class)
+            ->filter(fn ($favorite) => $favorite->favorable)
+            ->map(function ($favorite) {
+                /** @var \App\Models\User $author */
+                $author = $favorite->favorable;
+
+                return [
+                    'id' => $author->id,
+                    'name' => $author->name,
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'data' => [
+                'posts' => $posts,
+                'users' => $users,
+            ],
+        ]);
     }
 
     public function storePost(CreateFavoriteRequest $request, Post $post)

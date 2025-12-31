@@ -102,3 +102,42 @@ it('allows a user to remove a favorite author', function () {
         'user_id' => $actor->id,
     ]);
 });
+
+it('lists posts and users grouped on favorites index', function () {
+    [$actor, $author, $anotherAuthor] = User::factory()->count(3)->create();
+    $post = Post::factory()->for($author)->create([
+        'title' => 'All about cats',
+        'body' => 'Lorem Ipsum...',
+    ]);
+
+    $this->actingAs($actor)->postJson(route('favorites.posts.store', ['post' => $post]));
+    $this->actingAs($actor)->postJson(route('favorites.users.store', ['user' => $anotherAuthor]));
+
+    $response = $this->actingAs($actor)->getJson(route('favorites.index'));
+
+    $response
+        ->assertOk()
+        ->assertJson([
+            'data' => [
+                'posts' => [
+                    [
+                        'id' => $post->id,
+                        'title' => 'All about cats',
+                        'body' => 'Lorem Ipsum...',
+                        'user' => [
+                            'id' => $author->id,
+                            'name' => $author->name,
+                        ],
+                    ],
+                ],
+                'users' => [
+                    [
+                        'id' => $anotherAuthor->id,
+                        'name' => $anotherAuthor->name,
+                    ],
+                ],
+            ],
+        ])
+        ->assertJsonCount(1, 'data.posts')
+        ->assertJsonCount(1, 'data.users');
+});
